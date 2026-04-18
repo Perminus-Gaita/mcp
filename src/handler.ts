@@ -1,3 +1,4 @@
+import type { AxiosInstance } from "axios";
 import type { ToolDefinition } from "./types.js";
 import apiClient from "./utils/apiClient.js";
 import { createLogger } from "./utils/logger.js";
@@ -5,15 +6,15 @@ import { ResponseFormatter } from "./utils/responseFormatter.js";
 
 const logger = createLogger("ToolHandler");
 
-export function createHandler(tool: ToolDefinition) {
+export function createHandler(tool: ToolDefinition, client: AxiosInstance = apiClient) {
   return async (input: Record<string, unknown>) => {
     try {
       logger.info(`Executing tool: ${tool.name}`, { input });
 
       const response =
         tool.method === "GET"
-          ? await apiClient.get(tool.path, { params: input })
-          : await apiClient.post(tool.path, input);
+          ? await client.get(tool.path, { params: input })
+          : await client.post(tool.path, input);
 
       return ResponseFormatter.success(`${tool.name} completed successfully`, response.data);
     } catch (error) {

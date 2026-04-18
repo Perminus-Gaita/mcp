@@ -1,3 +1,4 @@
+import type { AxiosInstance } from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { generatedTools } from "./generated/tools.js";
 import { createHandler } from "./handler.js";
@@ -30,7 +31,7 @@ function getEnabledTools() {
   return filtered;
 }
 
-export function createServer() {
+export function createServer(client?: AxiosInstance) {
   const server = new McpServer({
     name: "dokploy",
     version: "2.0.0",
@@ -44,7 +45,7 @@ export function createServer() {
       tool.description,
       tool.schema.shape,
       tool.annotations ?? {},
-      createHandler(tool),
+      createHandler(tool, client),
     );
   }
 

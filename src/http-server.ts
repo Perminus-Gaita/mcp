@@ -8,10 +8,26 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { Hono } from "hono";
 import { createServer } from "./server.js";
+import { createApiClient } from "./utils/apiClient.js";
+import { getClientConfig } from "./utils/clientConfig.js";
 import { createLogger } from "./utils/logger.js";
 
 const PORT = 3000;
 const logger = createLogger("MCP-HTTP-Server");
+
+// Resolves which axios client to use for a new session.
+// Returns the client, or a string error message if credentials are missing/incomplete.
+function resolveSessionClient(
+  headerUrl: string | undefined,
+  headerToken: string | undefined,
+): ReturnType<typeof createApiClient> | string {
+  if (headerUrl && headerToken) return createApiClient(headerUrl, headerToken);
+  if (headerUrl || headerToken)
+    return "Incomplete credentials: both x-dokploy-url and x-dokploy-token headers are required";
+  const { dokployUrl, authToken } = getClientConfig();
+  if (dokployUrl && authToken) return createApiClient(dokployUrl, authToken);
+  return "Missing credentials: provide x-dokploy-url and x-dokploy-token headers";
+}
 
 const jsonrpcError = (code: number, message: string) => ({
   jsonrpc: "2.0" as const,
@@ -64,7 +80,14 @@ export async function main() {
           }
         };
 
-        const server = createServer();
+        const sessionClient = resolveSessionClient(
+          c.req.header("x-dokploy-url"),
+          c.req.header("x-dokploy-token"),
+        );
+        if (typeof sessionClient === "string") {
+          return c.json(jsonrpcError(-32001, sessionClient), 401);
+        }
+        const server = createServer(sessionClient);
         await server.connect(
           transport as unknown as import("@modelcontextprotocol/sdk/shared/transport.js").Transport,
         );
@@ -147,7 +170,14 @@ export async function main() {
         delete transports.sse[transport.sessionId];
       });
 
-      const server = createServer();
+      const sessionClient = resolveSessionClient(
+        c.req.header("x-dokploy-url"),
+        c.req.header("x-dokploy-token"),
+      );
+      if (typeof sessionClient === "string") {
+        return c.json(jsonrpcError(-32001, sessionClient), 401);
+      }
+      const server = createServer(sessionClient);
       await server.connect(transport);
       logger.info("New legacy SSE session initialized", { sessionId: transport.sessionId });
       return neverResolve();

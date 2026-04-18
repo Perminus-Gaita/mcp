@@ -146,6 +146,20 @@ function handleUnknownError(error: AxiosError): void {
   });
 }
 
+// Factory that creates an isolated axios instance for per-request / per-session credentials.
+// Used by the HTTP server to honour x-dokploy-url / x-dokploy-token request headers.
+export function createApiClient(dokployUrl: string, authToken: string) {
+  return axios.create({
+    baseURL: `${dokployUrl.replace(/\/+$/, "")}/api`,
+    timeout: config.timeout,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "x-api-key": authToken,
+    },
+  });
+}
+
 // Utility function to update auth token (for MCP context)
 export function setAuthToken(token: string): void {
   // Update default headers for future requests
