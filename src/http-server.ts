@@ -15,7 +15,7 @@ import { createLogger } from "./utils/logger.js";
 const PORT = 3000;
 const logger = createLogger("MCP-HTTP-Server");
 
-// Resolves which axios client to use for a new session.
+// Resolves which axios client to use for a new session..
 // Returns the client, or a string error message if credentials are missing/incomplete.
 function resolveSessionClient(
   headerUrl: string | undefined,
